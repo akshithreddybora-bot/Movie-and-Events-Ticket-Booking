@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BOOK ur SHOW - Online Movie Booking Hyderabad</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Space+Mono:wght@700&family=Righteous&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            scroll-behavior: smooth;
+        }
+
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .dynamic-title {
+            font-family: 'Righteous', cursive;
+            background: linear-gradient(to right, #f97316, #fbbf24, #f97316);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shine 3s linear infinite;
+        }
+
+        @keyframes shine {
+            to {
+                background-position: 200% center;
+            }
+        }
+
+        .seat {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .seat.selected {
+            background-color: #f97316 !important;
+            transform: scale(1.1);
+            box-shadow: 0 0 10px rgba(249, 115, 22, 0.5);
+        }
+
+        .seat.recliner.selected {
+            background-color: #fbbf24 !important;
+            box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+        }
+
+        .seat.occupied {
+            background-color: #334155 !important;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .cinema-screen {
+            width: 100%;
+            height: 12px;
+            background: #f97316;
+            border-radius: 50% / 100% 100% 0 0;
+            box-shadow: 0 10px 30px rgba(249, 115, 22, 0.6);
+            margin-bottom: 40px;
+        }
+
+        .theater-btn.active {
+            border-color: #f97316;
+            background: rgba(249, 115, 22, 0.1);
+        }
+
+        .time-slot.active {
+            background-color: #f97316;
+            color: white;
+            border-color: #f97316;
+        }
+
+        .date-slot.active {
+            border-color: #f97316;
+            background: rgba(249, 115, 22, 0.1);
+            color: #f97316;
+        }
+
+        .ticket-font {
+            font-family: 'Space Mono', monospace;
+        }
+
+        #qrcode img {
+            margin: 0 auto;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        #toast {
+            transition: transform 0.3s ease-out, opacity 0.3s;
+            transform: translateY(100px);
+        }
+
+        #toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body class="antialiased overflow-x-hidden">
+
+    <!-- Custom Notification Toast -->
+    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[1000] opacity-0 pointer-events-none">
+        <div
+            class="bg-slate-900 border border-slate-700 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3">
+            <i class="fas fa-info-circle text-orange-500"></i>
+            <span id="toast-msg">Please select a seat</span>
+        </div>
+    </div>
+
+    <!-- Auth Overlay -->
+    <div id="auth-overlay" class="fixed inset-0 z-[100] bg-slate-950 flex items-center justify-center p-4">
+        <div class="glass max-w-md w-full p-8 rounded-3xl shadow-2xl">
+            <div class="flex flex-col items-center mb-8">
+                <div class="bg-orange-500 p-4 rounded-2xl mb-4">
+                    <i class="fas fa-lock text-white text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold">Welcome Back</h2>
+                <p class="text-slate-400 text-sm">Sign in to book tickets in Hyderabad</p>
+            </div>
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <select
+                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-500">
+                        <option>admin</option>
+                        <option>customer</option>
+
+                    </select>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Email Address</label>
+                    <input type="email" required
+                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-500"
+                        placeholder="user@example.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Password</label>
+                    <input type="password" required
+                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-500"
+                        placeholder="••••••••">
+                </div>
+                <button type="submit"
+                    class="w-full bg-orange-500 hover:bg-orange-600 py-4 rounded-xl font-bold transition shadow-lg shadow-orange-900/40">Login
+                    to BOOK ur SHOW</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 glass px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-2 cursor-pointer" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+            <div class="bg-orange-500 p-2 rounded-lg shadow-lg shadow-orange-500/20"><i
+                    class="fas fa-ticket-alt text-white"></i></div>
+            <span class="text-2xl font-black tracking-tighter dynamic-title">BOOK ur SHOW</span>
+        </div>
+        <div class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-300">
+            <div class="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700">
+                <i class="fas fa-map-marker-alt text-orange-500"></i>
+                <span class="text-white">Hyderabad</span>
+            </div>
+            <a href="#movies-section" class="hover:text-white transition">Tollywood Superstars</a>
+        </div>
+        <div class="flex items-center gap-4">
+            <span id="user-display" class="hidden text-xs font-bold text-orange-400"></span>
+            <button onclick="logout()" id="logout-btn" class="hidden text-slate-400 hover:text-white text-sm"><i
+                    class="fas fa-sign-out-alt"></i></button>
+            <button onclick="scrollToMovies()"
+                class="bg-orange-500 hover:bg-orange-600 px-5 py-2 rounded-full text-sm font-semibold transition shadow-lg">Grab
+                Tickets</button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative h-[85vh] flex items-center px-6 md:px-20 pt-20">
+        <div class="absolute inset-0 z-0">
+            <img src="https://images.unsplash.com/photo-1598897349489-00f9064019a5?auto=format&fit=crop&q=80&w=2000"
+                class="w-full h-full object-cover opacity-40">
+            <div class="absolute inset-0 bg-gradient-to-r from-[#0f172a] to-transparent"></div>
+        </div>
+        <div class="relative z-10 max-w-2xl">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="bg-orange-500 px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest">Sankranti
+                    Special</span>
+                <span class="text-slate-400 text-sm font-medium">Big Screens, Big Stars</span>
+            </div>
+            <h1 class="text-5xl md:text-7xl font-bold mb-6 leading-tight">Stars of <br><span
+                    class="text-orange-500 font-black">Hyderabad</span></h1>
+            <p class="text-slate-400 text-lg mb-8 max-w-lg">Experience the magic of Tollywood with the latest hits from
+                Prabhas, Allu Arjun, and more on BOOK ur SHOW.</p>
+            <div class="flex gap-4">
+                <button onclick="scrollToMovies()"
+                    class="bg-orange-500 hover:bg-orange-600 px-8 py-4 rounded-2xl font-bold transition flex items-center gap-2">
+                    Start Booking <i class="fas fa-ticket-alt"></i>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Filter Bar -->
+    <div
+        class="px-6 md:px-20 py-8 sticky top-16 z-40 bg-slate-950/80 backdrop-blur-md flex flex-wrap gap-4 items-center justify-between border-b border-slate-800">
+        <div class="flex flex-wrap gap-2 overflow-x-auto no-scrollbar py-2" id="genre-filters">
+            <button onclick="filterMovies('all')"
+                class="px-4 py-2 rounded-full text-xs font-bold border border-orange-500 bg-orange-500 text-white transition whitespace-nowrap">All
+                Stars</button>
+            <button onclick="filterMovies('Prabhas')"
+                class="px-4 py-2 rounded-full text-xs font-bold border border-slate-700 hover:border-orange-500 transition whitespace-nowrap">Prabhas</button>
+            <button onclick="filterMovies('Allu Arjun')"
+                class="px-4 py-2 rounded-full text-xs font-bold border border-slate-700 hover:border-orange-500 transition whitespace-nowrap">Allu
+                Arjun</button>
+            <button onclick="filterMovies('Mahesh Babu')"
+                class="px-4 py-2 rounded-full text-xs font-bold border border-slate-700 hover:border-orange-500 transition whitespace-nowrap">Mahesh
+                Babu</button>
+            <button onclick="filterMovies('Jr NTR')"
+                class="px-4 py-2 rounded-full text-xs font-bold border border-slate-700 hover:border-orange-500 transition whitespace-nowrap">Jr
+                NTR</button>
+            <button onclick="filterMovies('Pawan Kalyan')"
+                class="px-4 py-2 rounded-full text-xs font-bold border border-slate-700 hover:border-orange-500 transition whitespace-nowrap">Pawan
+                Kalyan</button>
+            <button onclick="filterMovies('Balakrishna')"
+                class="px-4 py-2 rounded-full text-xs font-bold border border-slate-700 hover:border-orange-500 transition whitespace-nowrap">Balayya</button>
+            <button onclick="filterMovies('Ram Charan')"
+                class="px-4 py-2 rounded-full text-xs font-bold border border-slate-700 hover:border-orange-500 transition whitespace-nowrap">Ram
+                Charan</button>
+            <button onclick="filterMovies('Nani')"
+                class="px-4 py-2 rounded-full text-xs font-bold border border-slate-700 hover:border-orange-500 transition whitespace-nowrap">Nani</button>
+            <button onclick="filterMovies('Vijay Deverakonda')"
+                class="px-4 py-2 rounded-full text-xs font-bold border border-slate-700 hover:border-orange-500 transition whitespace-nowrap">Vijay
+                D</button>
+        </div>
+        <div class="relative w-full md:w-64">
+            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+            <input type="text" placeholder="Search actor or movie..." oninput="searchMovies(this.value)"
+                class="w-full bg-slate-900 border border-slate-800 rounded-full py-2 pl-12 pr-4 text-xs focus:outline-none focus:border-orange-500">
+        </div>
+    </div>
+
+    <!-- Movies Grid -->
+    <main id="movies-section" class="px-6 md:px-20 py-12 min-h-screen">
+        <div id="movie-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-8">
+            <!-- Movies injected here -->
+        </div>
+    </main>
+
+    <!-- Booking Modal -->
+    <div id="booking-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/90 backdrop-blur-md" onclick="closeModal()"></div>
+        <div
+            class="relative glass w-full max-w-6xl rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row max-h-[95vh]">
+            <!-- Sidebar -->
+            <div
+                class="w-full md:w-1/3 bg-slate-900 p-6 border-b md:border-b-0 md:border-r border-slate-700 overflow-y-auto">
+                <div class="flex gap-4 mb-6">
+                    <img id="modal-img" class="w-24 h-32 object-cover rounded-xl shadow-lg">
+                    <div>
+                        <h3 id="modal-title" class="text-xl font-bold"></h3>
+                        <p id="modal-genre" class="text-xs text-orange-500 mt-1 uppercase font-bold tracking-widest">
+                        </p>
+                        <div class="flex items-center gap-1 mt-2 text-yellow-500 text-xs">
+                            <i class="fas fa-star"></i>
+                            <span id="modal-rating" class="font-bold"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-3">1. Select Date</label>
+                        <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar" id="date-list"></div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-3">2. Select
+                            Theater</label>
+                        <div class="space-y-2" id="theater-list"></div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-3">3. Select Time</label>
+                        <div class="grid grid-cols-3 gap-2" id="time-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seating Area -->
+            <div class="w-full md:w-2/3 p-8 flex flex-col items-center overflow-y-auto bg-slate-950">
+                <div id="seating-interface" class="w-full flex flex-col items-center">
+                    <div class="cinema-screen"></div>
+                    <div class="grid grid-cols-8 gap-3 mb-12" id="seat-container"></div>
+                    <div id="recliner-section" class="hidden w-full max-w-md border-t border-slate-800 pt-8">
+                        <p class="text-[10px] font-bold text-amber-500 uppercase tracking-widest text-center mb-4">Gold
+                            Recliners (₹600)</p>
+                        <div class="grid grid-cols-6 gap-6 justify-center" id="recliner-container"></div>
+                    </div>
+                </div>
+
+                <div class="w-full flex justify-between items-center mt-auto border-t border-slate-800 pt-6">
+                    <div>
+                        <p class="text-slate-500 text-xs">Total Amount</p>
+                        <p class="text-2xl font-bold text-orange-500" id="total-price">₹0</p>
+                    </div>
+                    <button id="book-seats-btn" onclick="confirmBooking()"
+                        class="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed px-10 py-4 rounded-xl font-bold transition shadow-lg shadow-orange-950/20">
+                        Book Seats
+                    </button>
+                </div>
+            </div>
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-500 hover:text-white z-10"><i
+                    class="fas fa-times text-xl"></i></button>
+        </div>
+    </div>
+
+    <!-- Ticket Modal -->
+    <div id="ticket-modal" class="fixed inset-0 z-[70] hidden flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/95 backdrop-blur-xl"></div>
+        <div class="relative flex flex-col items-center gap-6 scale-90 md:scale-100">
+            <div id="ticket-export-area"
+                class="bg-white text-slate-900 rounded-3xl overflow-hidden w-[350px] shadow-2xl relative">
+                <div class="bg-orange-500 h-4 w-full"></div>
+                <div class="p-8">
+                    <div class="flex justify-between items-start mb-8">
+                        <div>
+                            <p class="text-[10px] font-black uppercase text-orange-500 tracking-tighter">BOOK ur SHOW
+                                Digital Pass</p>
+                            <h4 id="tick-movie" class="text-xl font-bold leading-tight"></h4>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-y-6 gap-x-4 border-y border-slate-100 py-6">
+                        <div>
+                            <p class="text-[9px] uppercase font-bold text-slate-400">Date</p>
+                            <p id="tick-date" class="text-xs font-bold"></p>
+                        </div>
+                        <div>
+                            <p class="text-[9px] uppercase font-bold text-slate-400">Time</p>
+                            <p id="tick-time" class="text-xs font-bold"></p>
+                        </div>
+                        <div class="col-span-2">
+                            <p class="text-[9px] uppercase font-bold text-slate-400">Theater</p>
+                            <p id="tick-theater" class="text-xs font-bold"></p>
+                        </div>
+                        <div>
+                            <p class="text-[9px] uppercase font-bold text-slate-400">Seats</p>
+                            <p id="tick-seats" class="text-xs font-bold"></p>
+                        </div>
+                        <div>
+                            <p class="text-[9px] uppercase font-bold text-slate-400">Total Paid</p>
+                            <p id="tick-price" class="text-xs font-bold text-orange-600"></p>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 flex flex-col items-center">
+                        <div id="qrcode"
+                            class="p-2 bg-white border-2 border-slate-100 rounded-xl mb-4 min-w-[140px] min-h-[140px] flex items-center justify-center">
+                        </div>
+                        <span class="ticket-font text-[10px] font-bold tracking-[0.4em] text-slate-300"
+                            id="tick-id">#BUS-LOADING</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-4">
+                <button onclick="downloadTicket()"
+                    class="bg-white text-slate-950 px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-100 transition">
+                    <i class="fas fa-download"></i> Save Ticket
+                </button>
+                <button onclick="location.reload()"
+                    class="bg-orange-500 text-white px-8 py-3 rounded-xl font-bold hover:bg-orange-600 transition">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const hydTheaters = [
+            { id: 't1', name: 'Prasads Multiplex', area: 'NTT Marg', type: 'IMAX', screen: 'imax', recliners: true },
+            { id: 't2', name: 'AMB Cinemas', area: 'Gachibowli', type: 'Superplex', screen: 'large', recliners: true },
+            { id: 't3', name: 'AAA Cinemas', area: 'Ameerpet', type: 'Premium', screen: 'medium', recliners: true },
+            { id: 't4', name: 'PVR: Nexus Mall', area: 'Kukatpally', type: 'P[XL]', screen: 'large', recliners: true }
+        ];
+
+        const movies = [
+            { id: 10, title: "Kalki 2898 AD", star: "Prabhas", genre: "Sci-Fi Epic", rating: "9.8", image: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&q=80&w=400", price: 500 },
+            { id: 11, title: "Salaar: Part 2", star: "Prabhas", genre: "Action Thriller", rating: "9.5", image: "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&q=80&w=400", price: 450 },
+            { id: 9, title: "Pushpa 2: The Rule", star: "Allu Arjun", genre: "Action Drama", rating: "9.9", image: "https://images.unsplash.com/photo-1594909122845-11baa439b7bf?auto=format&fit=crop&q=80&w=400", price: 500 },
+            { id: 3, title: "SSMB29", star: "Mahesh Babu", genre: "Adventure", rating: "9.9", image: "https://images.unsplash.com/photo-1506466010722-395aa2bef877?auto=format&fit=crop&q=80&w=400", price: 500 },
+            { id: 5, title: "Devara: Part 1", star: "Jr NTR", genre: "Epic Action", rating: "9.6", image: "https://images.unsplash.com/photo-1505833267072-c514ac2804d7?auto=format&fit=crop&q=80&w=400", price: 450 },
+            { id: 7, title: "OG (Original Gangster)", star: "Pawan Kalyan", genre: "Action Thriller", rating: "9.7", image: "https://images.unsplash.com/photo-1509248961158-e54f6934749c?auto=format&fit=crop&q=80&w=400", price: 400 },
+            { id: 12, title: "Game Changer", star: "Ram Charan", genre: "Political Drama", rating: "9.4", image: "https://images.unsplash.com/photo-1529655683826-aba9b3e77383?auto=format&fit=crop&q=80&w=400", price: 400 },
+            { id: 2, title: "Akhanda 2", star: "Balakrishna", genre: "Devotional Action", rating: "9.8", image: "https://images.unsplash.com/photo-1533929736458-ca588d08c8be?auto=format&fit=crop&q=80&w=400", price: 400 },
+            { id: 13, title: "Saripodhaa Sanivaaram", star: "Nani", genre: "Action Thriller", rating: "9.3", image: "https://images.unsplash.com/photo-1616530940355-351fabd9524b?auto=format&fit=crop&q=80&w=400", price: 300 },
+            { id: 14, title: "Dasara 2", star: "Nani", genre: "Rustic Drama", rating: "9.1", image: "https://images.unsplash.com/photo-1507608616759-54f48f0af0ee?auto=format&fit=crop&q=80&w=400", price: 300 },
+            { id: 15, title: "VD 12", star: "Vijay Deverakonda", genre: "Spy Thriller", rating: "9.0", image: "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&q=80&w=400", price: 320 }
+        ];
+
+        let filteredMoviesList = [...movies];
+        const showTimes = ["11:00 AM", "02:30 PM", "06:15 PM", "09:45 PM"];
+        let currentBooking = { movie: null, theater: hydTheaters[0], date: null, time: null, seats: [] };
+        let currentUser = null;
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        document.getElementById('login-form').onsubmit = (e) => {
+            e.preventDefault();
+            const email = e.target.querySelector('input[type="email"]').value;
+            currentUser = { email, name: email.split('@')[0] };
+            document.getElementById('auth-overlay').classList.add('hidden');
+            document.getElementById('user-display').innerText = `Hello, ${currentUser.name}`;
+            document.getElementById('user-display').classList.remove('hidden');
+            document.getElementById('logout-btn').classList.remove('hidden');
+            renderMovies();
+        };
+
+        function logout() { currentUser = null; location.reload(); }
+        function scrollToMovies() { document.getElementById('movies-section').scrollIntoView({ behavior: 'smooth' }); }
+
+        function filterMovies(star) {
+            document.querySelectorAll('#genre-filters button').forEach(b => {
+                b.classList.remove('bg-orange-500', 'text-white', 'border-orange-500');
+                b.classList.add('border-slate-700');
+            });
+            event.currentTarget.classList.add('bg-orange-500', 'text-white', 'border-orange-500');
+            filteredMoviesList = (star === 'all') ? [...movies] : movies.filter(m => m.star === star);
+            renderMovies();
+        }
+
+        function searchMovies(query) {
+            filteredMoviesList = movies.filter(m =>
+                m.title.toLowerCase().includes(query.toLowerCase()) ||
+                m.star.toLowerCase().includes(query.toLowerCase())
+            );
+            renderMovies();
+        }
+
+        function renderMovies() {
+            const grid = document.getElementById('movie-grid');
+            grid.innerHTML = filteredMoviesList.map(movie => `
+                <div class="group relative rounded-3xl overflow-hidden cursor-pointer bg-slate-800 transition transform hover:-translate-y-2" onclick="openBooking(${movie.id})">
+                    <img src="${movie.image}" class="w-full h-80 object-cover opacity-80 group-hover:opacity-100 transition">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
+                    <div class="absolute bottom-0 p-6 w-full">
+                        <span class="bg-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded mb-2 inline-block uppercase tracking-wider">${movie.star}</span>
+                        <h3 class="text-lg font-bold group-hover:text-orange-500 transition">${movie.title}</h3>
+                        <div class="flex items-center gap-2 mt-2">
+                             <p class="text-[10px] text-slate-400 uppercase font-semibold">${movie.genre}</p>
+                             <span class="text-yellow-500 text-xs font-bold"><i class="fas fa-star"></i> ${movie.rating}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openBooking(id) {
+            if (!currentUser) { document.getElementById('auth-overlay').classList.remove('hidden'); return; }
+            const movie = movies.find(m => m.id === id);
+            currentBooking = { movie, theater: hydTheaters[0], date: null, time: null, seats: [] };
+
+            document.getElementById('modal-title').innerText = movie.title;
+            document.getElementById('modal-genre').innerText = movie.star + " | " + movie.genre;
+            document.getElementById('modal-rating').innerText = movie.rating;
+            document.getElementById('modal-img').src = movie.image;
+
+            setupDates();
+            renderTheaters();
+            document.getElementById('booking-modal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            updateTotal();
+        }
+
+        function setupDates() {
+            const dateList = document.getElementById('date-list');
+            dateList.innerHTML = '';
+            for (let i = 0; i < 7; i++) {
+                const date = new Date();
+                date.setDate(date.getDate() + i);
+                const day = date.toLocaleString('en-US', { weekday: 'short' });
+                const num = date.getDate();
+                const btn = document.createElement('button');
+                btn.className = `date-slot shrink-0 border border-slate-700 rounded-2xl p-4 min-w-[70px] flex flex-col items-center transition ${i === 0 ? 'active' : ''}`;
+                btn.innerHTML = `<span class="text-[10px] font-bold opacity-60 uppercase mb-1">${day}</span><span class="text-xl font-bold">${num}</span>`;
+                btn.onclick = () => {
+                    document.querySelectorAll('.date-slot').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentBooking.date = date.toDateString();
+                };
+                if (i === 0) currentBooking.date = date.toDateString();
+                dateList.appendChild(btn);
+            }
+        }
+
+        function renderTheaters() {
+            const list = document.getElementById('theater-list');
+            list.innerHTML = hydTheaters.map(t => `
+                <button onclick="selectTheater('${t.id}')" class="theater-btn w-full text-left p-4 rounded-2xl border border-slate-700 bg-slate-800/30 flex justify-between items-center transition ${currentBooking.theater.id === t.id ? 'active' : ''}">
+                    <div><p class="text-xs font-bold text-white">${t.name}</p></div>
+                    <span class="text-[8px] bg-slate-700 px-2 py-0.5 rounded text-slate-300 font-bold">${t.type}</span>
+                </button>
+            `).join('');
+            renderTimes();
+        }
+
+        function renderTimes() {
+            const list = document.getElementById('time-list');
+            list.innerHTML = showTimes.map(time => `
+                <button onclick="selectTime('${time}')" class="time-slot border border-slate-700 rounded-xl py-3 text-[10px] font-bold transition ${currentBooking.time === time ? 'active' : ''}">
+                    ${time}
+                </button>
+            `).join('');
+            generateSeats();
+        }
+
+        function selectTheater(id) { currentBooking.theater = hydTheaters.find(t => t.id === id); currentBooking.seats = []; renderTheaters(); }
+        function selectTime(time) { currentBooking.time = time; currentBooking.seats = []; renderTimes(); updateTotal(); }
+
+        function generateSeats() {
+            const standard = document.getElementById('seat-container');
+            const reclinerSec = document.getElementById('recliner-section');
+            const recliner = document.getElementById('recliner-container');
+            standard.innerHTML = '';
+            for (let i = 1; i <= 40; i++) createSeat(standard, i, false);
+            if (currentBooking.theater.recliners) {
+                reclinerSec.classList.remove('hidden');
+                recliner.innerHTML = '';
+                for (let i = 1; i <= 12; i++) createSeat(recliner, i, true);
+            } else { reclinerSec.classList.add('hidden'); }
+        }
+
+        function createSeat(container, id, isRecliner) {
+            const occupied = Math.random() < 0.2;
+            const seat = document.createElement('div');
+            seat.className = `seat rounded ${occupied ? 'occupied' : (isRecliner ? 'recliner bg-amber-900/40 w-8 h-8' : 'bg-slate-700 w-6 h-6')}`;
+            if (!occupied) {
+                seat.onclick = () => {
+                    const seatName = (isRecliner ? 'R' : 'S') + id;
+                    const idx = currentBooking.seats.findIndex(s => s.id === seatName);
+                    if (idx > -1) {
+                        currentBooking.seats.splice(idx, 1);
+                        seat.classList.remove('selected');
+                    } else {
+                        currentBooking.seats.push({ id: seatName, price: isRecliner ? 600 : currentBooking.movie.price });
+                        seat.classList.add('selected');
+                    }
+                    updateTotal();
+                };
+            }
+            container.appendChild(seat);
+        }
+
+        function updateTotal() {
+            const total = currentBooking.seats.reduce((acc, s) => acc + s.price, 0);
+            document.getElementById('total-price').innerText = `₹${total}`;
+            const btn = document.getElementById('book-seats-btn');
+            if (!currentBooking.time || currentBooking.seats.length === 0) {
+                btn.disabled = true;
+                btn.innerText = !currentBooking.time ? "Select a Show Time" : "Select Seats";
+            } else {
+                btn.disabled = false;
+                btn.innerText = `Book ${currentBooking.seats.length} Ticket(s)`;
+            }
+        }
+
+        function closeModal() { document.getElementById('booking-modal').classList.add('hidden'); document.body.style.overflow = 'auto'; }
+
+        function confirmBooking() {
+            const ticketId = "#BUS-" + Math.random().toString(36).substr(2, 8).toUpperCase();
+            document.getElementById('tick-movie').innerText = currentBooking.movie.title;
+            document.getElementById('tick-date').innerText = currentBooking.date;
+            document.getElementById('tick-time').innerText = currentBooking.time;
+            document.getElementById('tick-theater').innerText = currentBooking.theater.name;
+            document.getElementById('tick-seats').innerText = currentBooking.seats.map(s => s.id).join(', ');
+            document.getElementById('tick-price').innerText = document.getElementById('total-price').innerText;
+            document.getElementById('tick-id').innerText = ticketId;
+
+            const qrContainer = document.getElementById("qrcode");
+            qrContainer.innerHTML = "";
+            new QRCode(qrContainer, { text: ticketId, width: 140, height: 140 });
+            document.getElementById('ticket-modal').classList.remove('hidden');
+        }
+
+        async function downloadTicket() {
+            const target = document.getElementById('ticket-export-area');
+            const canvas = await html2canvas(target, { scale: 2 });
+            const link = document.createElement('a');
+            link.download = `BookUrShow_Ticket_${Date.now()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        renderMovies();
+    </script>
+</body>
+
+</html>
